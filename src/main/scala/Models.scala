@@ -4,10 +4,19 @@ import cats.effect.{IO, Sync}
 import doobie.implicits._
 import doobie.util.transactor.Transactor
 import tsec.authentication.BackingStore
+import simulacrum._
 import scala.collection.mutable
 
-object Models {
-  case class User(id: Int, name: String, hashedPassword: String)
+case class User(id: Int, name: String, hashedPassword: String)
+
+@typeclass trait UserRepository[F[_]] {
+  def getUser(id: Int): F[User]
+}
+
+class Models(xa: Transactor[IO]) {
+  class UserRepositoryImpl extends UserRepository[IO] {
+    override def getUser(id: Int): IO[User] = ???
+  }
 
   def dummyBackingStore[F[_], I, V](getId: V => I)(implicit F: Sync[F]) = new BackingStore[F, I, V] {
     private val storageMap = mutable.HashMap.empty[I, V]
@@ -35,7 +44,7 @@ object Models {
       }
   }
 
-  def doobieBackingStore(xa: Transactor[IO]) = new BackingStore[IO, Int, User] {
+  def doobieBackingStore = new BackingStore[IO, Int, User] {
     override def put(user: User): IO[User] =
       sql"""
           INSERT INTO users (name, password) VALUES (${user.name}, ${user.hashedPassword})

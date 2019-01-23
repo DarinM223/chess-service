@@ -5,6 +5,7 @@ import doobie._
 import tsec.authentication._
 import tsec.common.SecureRandomId
 import tsec.mac.jca.{HMACSHA256, MacSigningKey}
+
 import scala.concurrent.duration._
 
 // After running server, try `localhost:8080/hello/foo` and
@@ -22,10 +23,11 @@ object Main extends IOApp {
     "postgres"
   )
 
-  val jwtStore = Models.dummyBackingStore[IO, SecureRandomId, AugmentedJWT[HMACSHA256, Int]](s => SecureRandomId.coerce(s.id))
-  val userStore = Models.doobieBackingStore(xa)
+  val models = new Models(xa)
+  val jwtStore = models.dummyBackingStore[IO, SecureRandomId, AugmentedJWT[HMACSHA256, Int]](s => SecureRandomId.coerce(s.id))
+  val userStore = models.doobieBackingStore
   val signingKey: MacSigningKey[HMACSHA256] = HMACSHA256.generateKey[Id]
-  val jwtStatefulAuth =
+  val jwtStatefulAuth: JWTAuthenticator[IO, Int, User, HMACSHA256] =
     JWTAuthenticator.backed.inBearerToken(
       expiryDuration = 10.minutes,
       maxIdle = None,
@@ -33,9 +35,12 @@ object Main extends IOApp {
       identityStore = userStore,
       signingKey = signingKey
     )
-  val Auth = SecuredRequestHandler(jwtStatefulAuth)
-  val service = new Service(Auth)
 
-  def run(args: List[String]): IO[ExitCode] = IO { println("Hello world! ")}.as(ExitCode.Success)
+  val userRepo = new models.UserRepositoryImpl()
+  val auth = SecuredRequestHandler(jwtStatefulAuth)
+  val service = new Service(jwtStatefulAuth, auth, userRepo)
+
+//  def run(args: List[String]): IO[ExitCode] = IO { println("Hello world! ")}.as(ExitCode.Success)
+  def run(args: List[String]): IO[ExitCode] = service.runServer
 }
 
