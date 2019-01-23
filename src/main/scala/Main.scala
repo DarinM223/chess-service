@@ -1,6 +1,5 @@
 import cats.Id
 import cats.effect._
-import cats.implicits._
 import doobie._
 import tsec.authentication._
 import tsec.common.SecureRandomId
@@ -8,8 +7,6 @@ import tsec.mac.jca.{HMACSHA256, MacSigningKey}
 
 import scala.concurrent.duration._
 
-// After running server, try `localhost:8080/hello/foo` and
-// `localhost:8080/api/hello/foo`
 object Main extends IOApp {
   // Change password for postgres with:
   //
@@ -37,8 +34,9 @@ object Main extends IOApp {
     )
 
   val userRepo = new models.UserRepositoryImpl()
-  val auth = SecuredRequestHandler(jwtStatefulAuth)
-  val service = new Service(jwtStatefulAuth, auth, userRepo)
+  val authHandler = SecuredRequestHandler(jwtStatefulAuth)
+  val auth = new Auth()
+  val service = new Service(jwtStatefulAuth, authHandler, auth, userRepo)
 
 //  def run(args: List[String]): IO[ExitCode] = IO { println("Hello world! ")}.as(ExitCode.Success)
   def run(args: List[String]): IO[ExitCode] = service.runServer

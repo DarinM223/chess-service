@@ -4,18 +4,20 @@ import cats.effect.{IO, Sync}
 import doobie.implicits._
 import doobie.util.transactor.Transactor
 import tsec.authentication.BackingStore
-import simulacrum._
 import scala.collection.mutable
 
 case class User(id: Int, name: String, hashedPassword: String)
 
-@typeclass trait UserRepository[F[_]] {
+trait UserRepository[F[_]] {
   def getUser(id: Int): F[User]
 }
 
 class Models(xa: Transactor[IO]) {
   class UserRepositoryImpl extends UserRepository[IO] {
-    override def getUser(id: Int): IO[User] = ???
+    override def getUser(id: Int): IO[User] =
+      sql"""
+            SELECT id, name FROM users WHERE id = $id
+         """.query[User].unique.transact(xa)
   }
 
   def dummyBackingStore[F[_], I, V](getId: V => I)(implicit F: Sync[F]) = new BackingStore[F, I, V] {
