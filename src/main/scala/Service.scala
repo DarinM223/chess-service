@@ -31,8 +31,21 @@ class Service(jwtAuth: JWTAuthenticator[IO, Int, User, HMACSHA256],
       Ok(s"Hello, $name.")
   }
 
-  val services = nonAuthService
-  val httpApp = Router("/" -> nonAuthService, "/api" -> services).orNotFound
+  val userRoutes = HttpRoutes.of[IO] {
+    case req @ POST -> Root / "users" / "create" =>
+      req.decode[UrlForm] { form =>
+        val username = form.getFirst("username")
+        val password = form.getFirst("password")
+        (username, password) match {
+          case (Some(username), Some(password)) =>
+            userRepo.createUser(username, password).flatMap(id => Ok(id.toString))
+          case _ => NotFound()
+        }
+      }
+  }
+
+  val services = nonAuthService <+> userRoutes
+  val httpApp = Router("/" -> services).orNotFound
 
   def runServer: IO[ExitCode] =
     BlazeServerBuilder[IO]

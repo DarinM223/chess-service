@@ -9,15 +9,27 @@ import scala.collection.mutable
 case class User(id: Int, name: String, hashedPassword: String)
 
 trait UserRepository[F[_]] {
-  def getUser(id: Int): F[User]
+  def getUser(id: Long): F[User]
+  def createUser(username: String, password: String): F[Long]
 }
 
-class Models(xa: Transactor[IO]) {
+class Models(xa: Transactor[IO], auth: Auth) {
   class UserRepositoryImpl extends UserRepository[IO] {
-    override def getUser(id: Int): IO[User] =
+    override def getUser(id: Long): IO[User] =
       sql"""
             SELECT id, name FROM users WHERE id = $id
          """.query[User].unique.transact(xa)
+
+    override def createUser(username: String, password: String): IO[Long] =
+      for {
+        hashedPassword <- auth.createPassword(password)
+        insertAndGetID =
+          for {
+            _  <- sql"INSERT INTO USERS (name, password) VALUES ($username, $hashedPassword)".update.run
+            id <- sql"SELECT lastval()".query[Long].unique
+          } yield id
+        id <- insertAndGetID.transact(xa)
+      } yield id
   }
 
   def dummyBackingStore[F[_], I, V](getId: V => I)(implicit F: Sync[F]) = new BackingStore[F, I, V] {

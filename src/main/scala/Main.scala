@@ -20,7 +20,8 @@ object Main extends IOApp {
     "postgres"
   )
 
-  val models = new Models(xa)
+  val auth = new Auth()
+  val models = new Models(xa, auth)
   val jwtStore = models.dummyBackingStore[IO, SecureRandomId, AugmentedJWT[HMACSHA256, Int]](s => SecureRandomId.coerce(s.id))
   val userStore = models.doobieBackingStore
   val signingKey: MacSigningKey[HMACSHA256] = HMACSHA256.generateKey[Id]
@@ -35,7 +36,6 @@ object Main extends IOApp {
 
   val userRepo = new models.UserRepositoryImpl()
   val authHandler = SecuredRequestHandler(jwtStatefulAuth)
-  val auth = new Auth()
   val service = new Service(jwtStatefulAuth, authHandler, auth, userRepo)
 
 //  def run(args: List[String]): IO[ExitCode] = IO { println("Hello world! ")}.as(ExitCode.Success)
