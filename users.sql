@@ -1,12 +1,12 @@
 CREATE TABLE IF NOT EXISTS users (
-    id INTEGER NOT NULL,
+    id SERIAL,
     name VARCHAR NOT NULL,
     password VARCHAR NOT NULL,
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS games (
-    id INTEGER NOT NULL,
+    id SERIAL,
     created_id INTEGER NOT NULL,
     other_id INTEGER NOT NULL,
     PRIMARY KEY (id),
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS games (
 );
 
 CREATE TABLE IF NOT EXISTS moves (
-    id INTEGER NOT NULL,
+    id SERIAL,
     game_id INTEGER NOT NULL,
     notation VARCHAR NOT NULL,
     FOREIGN KEY (game_id) REFERENCES games (id)

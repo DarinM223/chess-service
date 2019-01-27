@@ -17,7 +17,7 @@ class Models(xa: Transactor[IO], auth: Auth) {
   class UserRepositoryImpl extends UserRepository[IO] {
     override def getUser(id: Long): IO[User] =
       sql"""
-            SELECT id, name FROM users WHERE id = $id
+            SELECT id, name, password FROM users WHERE id = $id
          """.query[User].unique.transact(xa)
 
     override def createUser(username: String, password: String): IO[Long] =
@@ -25,7 +25,7 @@ class Models(xa: Transactor[IO], auth: Auth) {
         hashedPassword <- auth.createPassword(password)
         insertAndGetID =
           for {
-            _  <- sql"INSERT INTO USERS (name, password) VALUES ($username, $hashedPassword)".update.run
+            _  <- sql"INSERT INTO users (name, password) VALUES ($username, $hashedPassword)".update.run
             id <- sql"SELECT lastval()".query[Long].unique
           } yield id
         id <- insertAndGetID.transact(xa)

@@ -20,6 +20,12 @@ object Main extends IOApp {
     "postgres"
   )
 
+  // Postgres commands:
+  // \c to connect to database
+  // \d table to view schema of table
+  // \dt to view tables
+  // \i to run sql file
+
   val auth = new Auth()
   val models = new Models(xa, auth)
   val jwtStore = models.dummyBackingStore[IO, SecureRandomId, AugmentedJWT[HMACSHA256, Int]](s => SecureRandomId.coerce(s.id))
