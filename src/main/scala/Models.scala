@@ -68,7 +68,7 @@ class Models(xa: Transactor[IO], auth: Auth) {
       val query =
         sql"""
             SELECT id, name FROM users WHERE id = $id
-        """.query[User].option.transact(xa)
+        """.query[(Int, String)].map { case (id, name) => User(id, name, "") }.option.transact(xa)
       OptionT(query)
     }
 

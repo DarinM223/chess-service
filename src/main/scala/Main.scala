@@ -44,7 +44,6 @@ object Main extends IOApp {
   val authHandler = SecuredRequestHandler(jwtStatefulAuth)
   val service = new Service(jwtStatefulAuth, authHandler, auth, userRepo)
 
-//  def run(args: List[String]): IO[ExitCode] = IO { println("Hello world! ")}.as(ExitCode.Success)
   def run(args: List[String]): IO[ExitCode] = service.runServer
 }
 
