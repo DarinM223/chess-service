@@ -30,7 +30,7 @@ class Service(jwtAuth: JWTAuthenticator[IO, Int, User, HMACSHA256],
       }
   }
 
-  val userRoutes = HttpRoutes.of[IO] {
+  val userService = HttpRoutes.of[IO] {
     case req @ POST -> Root / "users" / "create" =>
       req.decode[UrlForm] { form =>
         (form.getFirst("username"), form.getFirst("password")) match {
@@ -41,13 +41,29 @@ class Service(jwtAuth: JWTAuthenticator[IO, Int, User, HMACSHA256],
       }
   }
 
-  val authService = authHandler.liftService(TSecAuthService {
-    case request @ GET -> Root / "hello" asAuthed user =>
-      val r: SecuredRequest[IO, User, AugmentedJWT[HMACSHA256, Int]] = request
-      Ok(user.toString)
+  val gameAuthService = authHandler.liftService(TSecAuthService {
+    case req @ GET -> Root / IntVar(gameId) asAuthed user =>
+      // TODO(DarinM223): return game data, and if user is part of game, information about whose turn is it.
+      ???
+    case req @ POST -> Root / IntVar(gameId) asAuthed user =>
+      // TODO(DarinM223): if user is part of game and it is user's turn, then apply user action, if it is valid.
+      ???
+    case req @ POST -> Root / "create" asAuthed user =>
+      val r: SecuredRequest[IO, User, AugmentedJWT[HMACSHA256, Int]] = req
+      r.request.decode[UrlForm] { form =>
+        (form.getFirst("game-id"), form.getFirst("other-user-id")) match {
+          case (Some(gameId), Some(otherUserId)) => ???
+          case _ => NotFound()
+        }
+      }
+      ???
   })
 
-  val services = nonAuthService <+> userRoutes <+> authService
+  val authService = authHandler.liftService(TSecAuthService {
+    case GET -> Root / "hello" asAuthed user => Ok(user.toString)
+  })
+
+  val services = nonAuthService <+> userService <+> authService <+> gameAuthService
   val httpApp = Router("/" -> services).orNotFound
 
   def runServer: IO[ExitCode] =

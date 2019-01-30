@@ -13,6 +13,10 @@ trait UserRepository[F[_]] {
   def createUser(username: String, password: String): F[Long]
 }
 
+trait GameRepository[F[_]] {
+
+}
+
 class Models(xa: Transactor[IO], auth: Auth) {
   class UserRepositoryImpl extends UserRepository[IO] {
     override def getUser(id: Long): IO[User] =
