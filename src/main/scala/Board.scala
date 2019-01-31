@@ -19,6 +19,9 @@ case class Board(cells: Vector[Vector[Option[Piece]]],
 object Board {
   val init: String = "rnbqkbnr\npppppppp\n        \n        \n        \n        \nPPPPPPPP\nRNBQKBNR"
 
+  val checkmateTest: String =
+    " Q      \n     pk \n  p   p \n p  N  p\n b     P\n bn     \n  r   P \n  K     "
+
   def fromString(s: String): Option[Board] = {
     def toPiece(ch: Char): Option[Piece] = ch match {
       case ' ' => None
@@ -53,13 +56,63 @@ object Board {
   }
 
   def checkEnd(board: Board): Option[Boolean] = {
-    // TODO(DarinM223): check kings diagonals, rows, and knight position away
-    def inCheck(board: Board, pos: (Int, Int), white: Boolean): Boolean = ???
+    def inCheck(board: Board, pos: (Int, Int), white: Boolean): Boolean = {
+      def isValidPos(pos: (Int, Int)): Boolean = 0 >= pos._1 && pos._1 < 8 && 0 >= pos._2 && pos._2 < 8
+      def checkPos(pos: (Int, Int), checkType: PieceType): Boolean = board.cells(pos._1)(pos._2) match {
+        case Some(Piece(pieceType, pieceWhite))
+          if pieceWhite != white && pieceType == checkType => true
+        case _ => false
+      }
+
+      def checkPawns: Boolean = {
+        val pawnPositions: Seq[(Int, Int)] = if (white) {
+          Seq((pos._1 - 1, pos._2 + 1), (pos._1 - 1, pos._2 - 1))
+        } else {
+          Seq((pos._1 + 1, pos._2 + 1), (pos._1 + 1, pos._2 - 1))
+        }
+        pawnPositions.exists(pos => isValidPos(pos) && checkPos(pos, Pawn))
+      }
+      def checkDiagonals: Boolean = {
+        val diagonals: Seq[(Int, Int)] = for {
+          y <- Seq.range(0, 8)
+          x <- Seq.range(0, 8)
+          if (y - pos._1).abs == (x - pos._2).abs
+        } yield (y, x)
+        diagonals.exists(pos => isValidPos(pos) && (checkPos(pos, Bishop) || checkPos(pos, Queen)))
+      }
+      def checkRowsCols: Boolean = {
+        val rowsCols: Seq[(Int, Int)] = for {
+          y <- Seq.range(0, 8)
+          x <- Seq.range(0, 8)
+          if y == pos._1 || x == pos._2
+        } yield (y, x)
+        rowsCols.exists(pos => isValidPos(pos) && (checkPos(pos, Rook) || checkPos(pos, Queen)))
+      }
+      def checkKnights: Boolean = {
+        val lPositions: Seq[(Int, Int)] = Seq(
+          (pos._1 - 1, pos._2 - 2),
+          (pos._1 - 1, pos._2 + 2),
+          (pos._1 + 1, pos._2 - 2),
+          (pos._1 + 1, pos._2 + 2),
+          (pos._1 - 2, pos._2 - 1),
+          (pos._1 - 2, pos._2 + 1),
+          (pos._1 + 2, pos._2 - 1),
+          (pos._1 + 2, pos._2 + 1)
+        )
+        lPositions.exists(pos => isValidPos(pos) && checkPos(pos, Knight))
+      }
+
+      checkPawns && checkKnights && checkDiagonals && checkRowsCols
+    }
     def adjs(pos: (Int, Int)): Seq[(Int, Int)] = Seq(
       (pos._1 + 1, pos._2),
       (pos._1 - 1, pos._2),
       (pos._1, pos._2 + 1),
-      (pos._1, pos._2 - 1)
+      (pos._1, pos._2 - 1),
+      (pos._1 + 1, pos._2 + 1),
+      (pos._1 + 1, pos._2 - 1),
+      (pos._1 - 1, pos._2 + 1),
+      (pos._1 - 1, pos._2 - 1)
     )
 
     val blackAdjs = adjs(board.kingBlack)
