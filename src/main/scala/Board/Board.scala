@@ -10,9 +10,16 @@ case object Rook extends PieceType
 case object Queen extends PieceType
 case object King extends PieceType
 
+sealed trait Move
+case class Castle(white: Boolean, kingSide: Boolean) extends Move
+case class NormalMove(piece: Piece, start: (Int, Int), end: (Int, Int)) extends Move
+
 case class Piece(pieceType: PieceType, white: Boolean)
 
 sealed trait BoardError
+case class PieceNotFound(piece: Piece) extends BoardError
+case class DifferentPieces(expected: Piece, found: Piece) extends BoardError
+case class CannotParseMove(move: String) extends BoardError
 
 case class Board(cells: Vector[Vector[Option[Piece]]],
                  kingWhite: (Int, Int),
@@ -60,7 +67,7 @@ object Board {
   }
 
   def checkEnd(board: Board): Option[Boolean] = {
-    import BoardChecker._
+    import BoardUtils._
     val blackAdjs = adjs(board.kingBlack).filter(isValidPos)
     val whiteAdjs = adjs(board.kingWhite).filter(isValidPos)
 
@@ -75,10 +82,9 @@ object Board {
     }
   }
 
-  def applyMove(board: Board, move: String): Either[BoardError, Board] = ???
-
-  def main(args: Array[String]) = {
-    val board = Board.fromString(Board.checkmateTest)
-    println(board.flatMap(Board.checkEnd(_)))
-  }
+  def applyMove(board: Board, move: String, white: Boolean): Either[BoardError, Board] =
+    for {
+      move         <- BoardUtils.parseMove(move, white)
+      updatedBoard <- BoardUtils.applyMove(board, move)
+    } yield updatedBoard
 }
