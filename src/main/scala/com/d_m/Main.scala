@@ -2,7 +2,7 @@ package com.d_m
 
 import cats.Id
 import cats.effect.{ExitCode, IO, IOApp}
-import com.d_m.Models.{Stores, User, UserRepositoryImpl}
+import com.d_m.Models._
 import doobie.Transactor
 import tsec.authentication.{AugmentedJWT, JWTAuthenticator, SecuredRequestHandler}
 import tsec.common.SecureRandomId
@@ -44,8 +44,9 @@ object Main extends IOApp {
     )
 
   val userRepo = new UserRepositoryImpl(xa, auth)
+  val gameRepo = new GameRepositoryImpl(xa)
   val authHandler = SecuredRequestHandler(jwtStatefulAuth)
-  val service = new Service(jwtStatefulAuth, authHandler, auth, userRepo)
+  val service = new Service(jwtStatefulAuth, authHandler, auth, userRepo, gameRepo)
 
   def run(args: List[String]): IO[ExitCode] = service.runServer
 }

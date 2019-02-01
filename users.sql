@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS games (
     id SERIAL,
     created_id INTEGER NOT NULL,
     other_id INTEGER NOT NULL,
+    curr_turn_id INTEGER,
     board VARCHAR NOT NULL,
     PRIMARY KEY (id),
     FOREIGN KEY (created_id) REFERENCES users (id),

@@ -19,6 +19,7 @@ case class Piece(pieceType: PieceType, white: Boolean)
 sealed trait BoardError
 case class PieceNotFound(piece: Piece) extends BoardError
 case class DifferentPieces(expected: Piece, found: Piece) extends BoardError
+case class CannotParseBoard(board: String) extends BoardError
 case class CannotParseMove(move: String) extends BoardError
 case class CannotParsePos(pos: String) extends BoardError
 
@@ -58,7 +59,7 @@ object Board {
   val checkmateTest: String =
     " Q      \n     pk \n  p   p \n p  N  p\n b     P\n bn     \n  r   P \n  K     "
 
-  def fromString(s: String): Option[Board] = {
+  def fromString(s: String): Either[BoardError, Board] = {
     def toPiece(ch: Char): Option[Piece] = ch match {
       case ' ' => None
       case 'P' => Some(Piece(Pawn, true))
@@ -88,7 +89,9 @@ object Board {
         .map(_._2)
 
     val cells = s.split('\n').map(row => row.map(toPiece).to[Vector]).to[Vector]
-    (Some(cells), findPiece('K'), findPiece('k')).mapN(Board(_, _, _))
+    (Some(cells), findPiece('K'), findPiece('k'))
+      .mapN(Board(_, _, _))
+      .toRight(CannotParseBoard(s))
   }
 
   def checkEnd(board: Board): Option[Boolean] = {

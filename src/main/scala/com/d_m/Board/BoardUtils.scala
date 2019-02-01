@@ -98,13 +98,12 @@ object BoardUtils {
   def parseMove(move: String, white: Boolean): Either[BoardError, Move] = move match {
     case "O-O"   => Right(Castle(white, true))
     case "O-O-O" => Right(Castle(white, false))
-    case _ if move.split(' ').length == 2 => {
+    case _ if move.split(' ').length == 2 =>
       import cats.implicits._
       for {
         List((pieceType, pos1), (_, pos2)) <- move.split(' ').toList
           .traverse[Either[BoardError, ?], (PieceType, (Int, Int))](parsePosition)
       } yield NormalMove(Piece(pieceType, white), pos1, pos2)
-    }
     case _ => Left(CannotParseMove(move))
   }
 
@@ -122,7 +121,7 @@ object BoardUtils {
           case _                  => board.copy(cells = addedPiece)
         }
       } yield updatedBoard
-    case Castle(white, kingSide) => {
+    case Castle(white, kingSide) =>
       val castleRow = if (white) 7 else 0
       val kingCol = 4
       val rookCol = if (kingSide) 7 else 0
@@ -142,6 +141,5 @@ object BoardUtils {
         board1 <- applyMove(board, moveKing)
         board2 <- applyMove(board1, moveRook)
       } yield board2
-    }
   }
 }

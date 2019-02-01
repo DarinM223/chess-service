@@ -30,6 +30,10 @@ libraryDependencies ++= Seq(
   "org.http4s" %% "http4s-dsl" % http4sVersion,
   "org.http4s" %% "http4s-blaze-server" % http4sVersion,
   "org.http4s" %% "http4s-blaze-client" % http4sVersion,
+  "org.http4s" %% "http4s-circe" % http4sVersion,
+
+  "io.circe" %% "circe-core" % "0.10.0",
+
   "io.github.jmcardon" %% "tsec-http4s" % tsecVersion,
   "io.github.jmcardon" %% "tsec-password" % tsecVersion,
   "org.tpolecat" %% "doobie-core" % doobieVersion,

@@ -21,10 +21,10 @@ class UserRepositoryImpl[F[_]: Monad](xa: Transactor[F], auth: Auth[F]) extends 
     for {
       hashedPassword <- auth.createPassword(password)
       insertAndGetID =
-      for {
-        _  <- sql"INSERT INTO users (name, password) VALUES ($username, $hashedPassword)".update.run
-        id <- sql"SELECT lastval()".query[Long].unique
-      } yield id
+        for {
+          _  <- sql"INSERT INTO users (name, password) VALUES ($username, $hashedPassword)".update.run
+          id <- sql"SELECT lastval()".query[Long].unique
+        } yield id
       id <- insertAndGetID.transact(xa)
     } yield id
 }
