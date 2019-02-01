@@ -1,7 +1,10 @@
+package com.d_m
+
 import cats.Id
-import cats.effect._
-import doobie._
-import tsec.authentication._
+import cats.effect.{ExitCode, IO, IOApp}
+import com.d_m.Models.{Stores, User, UserRepositoryImpl}
+import doobie.Transactor
+import tsec.authentication.{AugmentedJWT, JWTAuthenticator, SecuredRequestHandler}
 import tsec.common.SecureRandomId
 import tsec.mac.jca.{HMACSHA256, MacSigningKey}
 
@@ -26,10 +29,10 @@ object Main extends IOApp {
   // \dt to view tables
   // \i to run sql file
 
-  val auth = new Auth()
-  val models = new Models(xa, auth)
-  val jwtStore = models.dummyBackingStore[IO, SecureRandomId, AugmentedJWT[HMACSHA256, Int]](s => SecureRandomId.coerce(s.id))
-  val userStore = models.doobieBackingStore
+  val auth = new Auth[IO]()
+  val stores = new Stores(xa, auth)
+  val jwtStore = stores.dummyBackingStore[IO, SecureRandomId, AugmentedJWT[HMACSHA256, Int]](s => SecureRandomId.coerce(s.id))
+  val userStore = stores.doobieBackingStore
   val signingKey: MacSigningKey[HMACSHA256] = HMACSHA256.generateKey[Id]
   val jwtStatefulAuth: JWTAuthenticator[IO, Int, User, HMACSHA256] =
     JWTAuthenticator.backed.inBearerToken(
@@ -40,10 +43,9 @@ object Main extends IOApp {
       signingKey = signingKey
     )
 
-  val userRepo = new models.UserRepositoryImpl()
+  val userRepo = new UserRepositoryImpl(xa, auth)
   val authHandler = SecuredRequestHandler(jwtStatefulAuth)
   val service = new Service(jwtStatefulAuth, authHandler, auth, userRepo)
 
   def run(args: List[String]): IO[ExitCode] = service.runServer
 }
-

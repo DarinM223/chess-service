@@ -1,4 +1,4 @@
-package Board
+package com.d_m.Board
 
 import cats.implicits._
 

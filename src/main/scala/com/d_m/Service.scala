@@ -1,17 +1,20 @@
+package com.d_m
+
 import cats.effect._
 import cats.implicits._
+import com.d_m.Models.{User, UserRepository}
 import org.http4s._
 import org.http4s.dsl.io._
 import org.http4s.implicits._
-import org.http4s.server.blaze._
 import org.http4s.server.Router
+import org.http4s.server.blaze._
 import tsec.authentication._
 import tsec.jws.mac.JWTMac
 import tsec.mac.jca.HMACSHA256
 
 class Service(jwtAuth: JWTAuthenticator[IO, Int, User, HMACSHA256],
               authHandler: SecuredRequestHandler[IO, Int, User, AugmentedJWT[HMACSHA256, Int]],
-              auth: Auth,
+              auth: Auth[IO],
               userRepo: UserRepository[IO])
              (implicit timer: Timer[IO], effect: ConcurrentEffect[IO]) {
   val nonAuthService = HttpRoutes.of[IO] {
@@ -31,7 +34,7 @@ class Service(jwtAuth: JWTAuthenticator[IO, Int, User, HMACSHA256],
   }
 
   val userService = HttpRoutes.of[IO] {
-    case req @ POST -> Root / "users" / "create" =>
+    case req @ POST -> Root / "create" =>
       req.decode[UrlForm] { form =>
         (form.getFirst("username"), form.getFirst("password")) match {
           case (Some(username), Some(password)) =>
@@ -63,8 +66,12 @@ class Service(jwtAuth: JWTAuthenticator[IO, Int, User, HMACSHA256],
     case GET -> Root / "hello" asAuthed user => Ok(user.toString)
   })
 
-  val services = nonAuthService <+> userService <+> authService <+> gameAuthService
-  val httpApp = Router("/" -> services).orNotFound
+  val services = nonAuthService <+> authService
+  val httpApp = Router(
+    "/"      -> services,
+    "/games" -> gameAuthService,
+    "/users" -> userService
+  ).orNotFound
 
   def runServer: IO[ExitCode] =
     BlazeServerBuilder[IO]

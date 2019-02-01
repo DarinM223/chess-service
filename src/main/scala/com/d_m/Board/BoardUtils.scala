@@ -1,4 +1,4 @@
-package Board
+package com.d_m.Board
 
 object BoardUtils {
   def isValidPos(pos: (Int, Int)): Boolean = pos._1 >= 0 && pos._1 < 8 && pos._2 >= 0 && pos._2 < 8
