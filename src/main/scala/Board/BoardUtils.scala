@@ -1,8 +1,5 @@
 package Board
 
-import cats._
-import cats.implicits._
-
 object BoardUtils {
   def isValidPos(pos: (Int, Int)): Boolean = pos._1 >= 0 && pos._1 < 8 && pos._2 >= 0 && pos._2 < 8
 
@@ -79,16 +76,35 @@ object BoardUtils {
     (pos._1 - 1, pos._2 - 1)
   )
 
-  def parsePosition(pos: String): Either[BoardError, (PieceType, (Int, Int))] = ???
+  def parsePosition(pos: String): Either[BoardError, (PieceType, (Int, Int))] =
+    if (pos.length > 3) {
+      Left(CannotParsePos(pos))
+    } else {
+      def parsePieceType(ch: Char): Either[BoardError, PieceType] = ch match {
+        case 'P' => Right(Pawn)
+        case 'N' => Right(Knight)
+        case 'B' => Right(Bishop)
+        case 'R' => Right(Rook)
+        case 'Q' => Right(Queen)
+        case 'K' => Right(King)
+        case _   => Left(CannotParsePos(pos))
+      }
+      val pieceCh = pos.charAt(0)
+      val col = pos.charAt(1).toInt - 'a'.toInt
+      val row = 7 - (pos.charAt(2).toInt - '1'.toInt)
+      parsePieceType(pieceCh).map((_, (row, col)))
+    }
 
   def parseMove(move: String, white: Boolean): Either[BoardError, Move] = move match {
     case "O-O"   => Right(Castle(white, true))
     case "O-O-O" => Right(Castle(white, false))
-    case _ if move.split(' ').length == 2 =>
+    case _ if move.split(' ').length == 2 => {
+      import cats.implicits._
       for {
         List((pieceType, pos1), (_, pos2)) <- move.split(' ').toList
           .traverse[Either[BoardError, ?], (PieceType, (Int, Int))](parsePosition)
       } yield NormalMove(Piece(pieceType, white), pos1, pos2)
+    }
     case _ => Left(CannotParseMove(move))
   }
 
@@ -98,13 +114,12 @@ object BoardUtils {
       for {
         foundPiece <- board.cells(start._1)(start._2).toRight(PieceNotFound(piece))
         _ <- if (piece != foundPiece) Left(DifferentPieces(piece, foundPiece)) else Right()
-        updatedCells = board.cells
-          .updated(start._1, board.cells(start._1).updated(start._2, None))
-          .updated(end._1, board.cells(end._1).updated(end._2, Some(piece)))
+        removedPiece = board.cells.updated(start._1, board.cells(start._1).updated(start._2, None))
+        addedPiece = removedPiece.updated(end._1, removedPiece(end._1).updated(end._2, Some(piece)))
         updatedBoard = piece match {
-          case Piece(King, true) => board.copy(cells = updatedCells, kingWhite = end)
-          case Piece(King, false) => board.copy(cells = updatedCells, kingBlack = end)
-          case _ => board.copy(cells = updatedCells)
+          case Piece(King, true)  => board.copy(cells = addedPiece, kingWhite = end)
+          case Piece(King, false) => board.copy(cells = addedPiece, kingBlack = end)
+          case _                  => board.copy(cells = addedPiece)
         }
       } yield updatedBoard
     case Castle(white, kingSide) => {

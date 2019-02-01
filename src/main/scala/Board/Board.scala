@@ -20,10 +20,35 @@ sealed trait BoardError
 case class PieceNotFound(piece: Piece) extends BoardError
 case class DifferentPieces(expected: Piece, found: Piece) extends BoardError
 case class CannotParseMove(move: String) extends BoardError
+case class CannotParsePos(pos: String) extends BoardError
 
 case class Board(cells: Vector[Vector[Option[Piece]]],
                  kingWhite: (Int, Int),
-                 kingBlack: (Int, Int))
+                 kingBlack: (Int, Int)) {
+  def pretty: String = {
+    def fromPiece(piece: Option[Piece]): Char = piece match {
+      case None                       => ' '
+      case Some(Piece(Pawn, true))    => 'P'
+      case Some(Piece(Pawn, false))   => 'p'
+      case Some(Piece(Knight, true))  => 'N'
+      case Some(Piece(Knight, false)) => 'n'
+      case Some(Piece(Bishop, true))  => 'B'
+      case Some(Piece(Bishop, false)) => 'b'
+      case Some(Piece(Rook, true))    => 'R'
+      case Some(Piece(Rook, false))   => 'r'
+      case Some(Piece(Queen, true))   => 'Q'
+      case Some(Piece(Queen, false))  => 'q'
+      case Some(Piece(King, true))    => 'K'
+      case Some(Piece(King, false))   => 'k'
+    }
+    val charSeq = for {
+      row <- Seq.range(0, 8)
+      col <- Seq.range(0, 9)
+    } yield if (col == 8) '\n' else fromPiece(cells(row)(col))
+
+    charSeq.mkString
+  }
+}
 
 object Board {
   val init: String = "rnbqkbnr\npppppppp\n        \n        \n        \n        \nPPPPPPPP\nRNBQKBNR"
