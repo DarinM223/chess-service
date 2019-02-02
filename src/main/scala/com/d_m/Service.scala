@@ -50,7 +50,7 @@ class Service(jwtAuth: JWTAuthenticator[IO, Int, User, HMACSHA256],
   }
 
   val gameAuthService = authHandler.liftService(TSecAuthService {
-    case req @ GET -> Root / IntVar(gameId) asAuthed _ =>
+    case GET -> Root / IntVar(gameId) asAuthed _ =>
       import io.circe.syntax._
       import org.http4s.circe._
       import Game._
@@ -62,7 +62,7 @@ class Service(jwtAuth: JWTAuthenticator[IO, Int, User, HMACSHA256],
           NotFound()
         } else {
           r.request.decode[UrlForm] { form =>
-            val white = ???
+            val white = user.id == game.otherID
             val board = for {
               moveStr <- form.getFirst("move").toRight(CannotParseMove(""))
               board   <- fromString(game.board)
@@ -71,7 +71,7 @@ class Service(jwtAuth: JWTAuthenticator[IO, Int, User, HMACSHA256],
 
             board match {
               case Left(_)      => NotFound()
-              case Right(board) => gameRepo.nextTurn(board.pretty).flatMap(_ => Ok())
+              case Right(board) => gameRepo.nextTurn(game, board.pretty).flatMap(_ => Ok())
             }
           }
         }
